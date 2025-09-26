@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.build/
+.dist/
+
+# Virtual environment
+venv/
+
+# Pytest / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Type checking / tooling
+.mypy_cache/
+.ruff_cache/
+
+# OS
+.DS_Store
+
+# Secrets
+.env
+*.env
+
+# Playwright auth state / reports
+playwright/auth/
+playwright-report/
+trace.zip
+
+# Outputs / logs
+output/
+logs/
+*.log
