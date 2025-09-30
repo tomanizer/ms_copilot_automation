@@ -1,3 +1,5 @@
+import re
+from html import unescape
 from typing import Optional, List, Tuple
 
 from playwright.async_api import Page
@@ -11,6 +13,8 @@ MESSAGE_SELECTORS = (
     'div[role="dialog"] article',
     '[data-testid="message"]',
 )
+
+CITATION_PATTERN = re.compile(r"\[_\{\{\{CITATION\{\{\{_?\d+\{\]\([^)]+\)")
 
 
 async def send_prompt(page: Page, prompt: str) -> None:
@@ -105,6 +109,15 @@ def _score(text: str) -> Tuple[int, int]:
     return score, len(text)
 
 
+def _normalise_response(text: str) -> str:
+    text = unescape(text)
+    text = CITATION_PATTERN.sub("", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n[ \t]+", "\n", text)
+    return text.strip()
+
+
 async def read_response_text(page: Page, timeout_ms: int = 90000, exclude_text: Optional[str] = None) -> str:
     await page.wait_for_load_state("networkidle")
 
@@ -130,21 +143,21 @@ async def read_response_text(page: Page, timeout_ms: int = 90000, exclude_text: 
                 last_best = best
                 stable_ticks = 0
             if stable_ticks >= 2:
-                return last_best
+                return _normalise_response(last_best)
         await page.wait_for_timeout(interval_ms)
         elapsed += interval_ms
 
     if last_best:
-        return last_best
+        return _normalise_response(last_best)
     base = await get_last_message_text(page)
     if base:
-        return base
+        return _normalise_response(base)
     try:
         main = await page.inner_text("main")
         if exclude_text and exclude_text.strip() in main:
             main = main.replace(exclude_text, "").strip()
         if main:
-            return main
+            return _normalise_response(main)
     except Exception:
         pass
     return ""

@@ -5,8 +5,8 @@ from typing import Optional
 
 import click
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
-from rich.text import Text
 
 from ..automation.copilot_controller import CopilotController
 from ..automation.ui import prepare_chat_ui
@@ -111,7 +111,7 @@ def chat(prompt: str, out: Optional[str]) -> None:
         Path(out).write_text(text)
         console.print(f"[green]Wrote[/] {out}")
     else:
-        console.print(Panel(Text(text), title="Copilot", border_style="green"))
+        console.print(Panel(Markdown(text), title="Copilot", border_style="green"))
 
 
 @cli.command(name="ask-with-file")
@@ -155,7 +155,7 @@ def ask_with_file_cmd(
         Path(out).write_text(text)
         console.print(f"[green]Wrote[/] {out}")
     else:
-        console.print(Panel(Text(text), title="Copilot", border_style="green"))
+        console.print(Panel(Markdown(text), title="Copilot", border_style="green"))
     if download:
         if artifact:
             console.print(f"[green]Downloaded[/] {artifact}")
