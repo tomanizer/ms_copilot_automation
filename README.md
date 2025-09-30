@@ -5,6 +5,12 @@ Minimal CLI to:
 - Send prompts and read responses
 - Upload a file and ask for a summary
 
+## Requirements
+
+- Python 3.10+
+- Playwright browsers (`python -m playwright install chromium`)
+- Access to Microsoft Copilot with valid credentials (username + password, optional TOTP secret)
+
 ## Quickstart
 
 ```bash
@@ -14,18 +20,20 @@ source venv/bin/activate
 
 # 2) Install deps and browsers
 pip install -r requirements.txt
-python -m playwright install
+python -m playwright install chromium
 
-# 3) Set secrets (recommended: keyring + .env for username)
+# 3) Set secrets
 # .env (do not commit)
 echo "M365_USERNAME=your-email@domain.com" >> .env
-# Optional: set password and otp in OS keychain/credential store
+# Store password/TOTP securely. Preferred: OS keyring (macOS Keychain, etc.)
 python - <<'PY'
 import keyring
 keyring.set_password('ms-copilot-automation','M365_PASSWORD','<your-password>')
 # Optional TOTP secret (base32)
 # keyring.set_password('ms-copilot-automation','M365_OTP_SECRET','<base32>')
 PY
+# Alternate fallback: create `.keyring.json` with the same keys if keyring is unavailable
+# echo '{"M365_PASSWORD": "...", "M365_OTP_SECRET": "..."}' > .keyring.json
 
 # 4) Manual auth (headed) to persist session (saves state every few seconds)
 python -m src.cli.main --headed auth --manual
@@ -49,7 +57,22 @@ python -m src.cli.main --output-dir output ask-with-file sample.docx \
 
 # 7) Run tests (optional)
 PYTHONPATH=$(pwd) pytest -q
+
+# Optional: run live E2E suite (requires credentials, set M365_COPILOT_E2E=1)
+M365_COPILOT_E2E=1 PYTHONPATH=$(pwd) pytest -m copilot_e2e
 ```
+
+## Environment Variables
+
+| Name | Purpose | Default |
+| --- | --- | --- |
+| `M365_USERNAME` | MS account email (required) | `None` |
+| `M365_PASSWORD` | Password (read from keyring or `.keyring.json`) | `None` |
+| `M365_OTP_SECRET` | Optional TOTP secret for MFA | `None` |
+| `M365_COPILOT_URL` | Copilot endpoint | `https://copilot.microsoft.com` |
+| `M365_COPILOT_E2E` | Opt-in flag for live tests | disabled |
+| `BROWSER_HEADLESS` | Force headless/headed (`true`/`false`) | `true` |
+| `OUTPUT_DIRECTORY` | Default output dir for artifacts | `./output` |
 
 ## CLI
 
@@ -84,3 +107,6 @@ python -m src.cli.main download --timeout 90 --out output
 - Default output dir is current working directory; use `--output-dir` for convenience
 - Styled output via `rich` (panels, colors)
 - Secrets stored via `keyring` land in your OS credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service)
+- If keyring access is blocked, you can use `.keyring.json` as plaintext fallback (ignored by git)
+- Regenerate Playwright auth state anytime with `python -m src.cli.main --headed auth --manual`
+- For debugging UI flows, run with `--headed` or `PWDEBUG=1` to open the Playwright inspector

@@ -40,6 +40,10 @@ class CopilotController:
         if not self.context:
             raise RuntimeError("Controller not started")
         if not self.settings.storage_state_path.exists():
+            if not (self.settings.username and self.settings.password):
+                raise RuntimeError(
+                    "Missing credentials: set M365_USERNAME and M365_PASSWORD or provide an existing storage state"
+                )
             logger.info("Performing first-time login")
             await perform_login(
                 self.context,

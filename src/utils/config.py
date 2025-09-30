@@ -1,3 +1,4 @@
+import json
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -12,6 +13,8 @@ from .logger import get_logger
 
 load_dotenv(dotenv_path=Path(".env"), override=False)
 _logger = get_logger(__name__)
+
+_KEYRING_FILE = Path(".keyring.json")
 
 
 class Settings(BaseModel):
@@ -38,6 +41,18 @@ class Settings(BaseModel):
 
     def hydrate_from_keyring(self) -> None:
         """Fill missing sensitive values from OS keyring."""
+        secrets = {}
+        if _KEYRING_FILE.exists():
+            try:
+                secrets = json.loads(_KEYRING_FILE.read_text())
+            except Exception as exc:
+                _logger.warning("Failed to read local keyring file: %s", exc)
+
+        if not self.password:
+            self.password = secrets.get("M365_PASSWORD")
+        if not self.mfa_secret:
+            self.mfa_secret = secrets.get("M365_OTP_SECRET")
+
         if not self.password:
             try:
                 self.password = keyring.get_password("ms-copilot-automation", "M365_PASSWORD")
@@ -58,3 +73,8 @@ def get_settings() -> Settings:
     settings.output_directory.mkdir(parents=True, exist_ok=True)
     settings.storage_state_path.parent.mkdir(parents=True, exist_ok=True)
     return settings
+
+
+def reset_settings_cache() -> None:
+    """Clear the cached settings instance."""
+    get_settings.cache_clear()  # type: ignore[attr-defined]
