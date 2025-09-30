@@ -34,6 +34,9 @@ class Settings(BaseModel):
     output_directory: Path = Field(default=Path(os.getenv("OUTPUT_DIRECTORY", "./output")))
     browser_headless: bool = Field(default=(os.getenv("BROWSER_HEADLESS", "true").lower() == "true"))
 
+    # Prompt behaviour
+    force_markdown_responses: bool = Field(default=(os.getenv("COPILOT_FORCE_MARKDOWN", "true").lower() == "true"))
+
     # Storage state
     storage_state_path: Path = Field(default=Path("playwright/auth/user.json"))
 

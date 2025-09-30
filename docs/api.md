@@ -27,6 +27,8 @@ Use `async with` to ensure Playwright resources close cleanly. Alternatively, ca
 - `download_response(target_dir: Path, timeout_ms: int = 45000) -> Path` – Wait for the next downloadable artifact and save it into `target_dir`.
 - `close()` – Dispose Playwright resources (page, context, browser, playwright manager).
 
+Prompts are automatically decorated with a Markdown instruction when `settings.force_markdown_responses` is `True` (default). Disable via `COPILOT_FORCE_MARKDOWN=false` or the CLI flag `--no-force-markdown`.
+
 ### Settings
 
 `CopilotController` pulls configuration via `get_settings()` (see below). You can reset cached settings between runs with `reset_settings_cache()`.
@@ -52,6 +54,7 @@ Key fields:
 - `browser_headless`
 - `storage_state_path`
 - `output_directory`
+- `force_markdown_responses`
 
 Secrets are sourced from (in order): environment variables, `.keyring.json` (fallback), then OS keyring. Non-secret config respects environment overrides (`M365_COPILOT_URL`, `BROWSER_HEADLESS`, etc.).
 

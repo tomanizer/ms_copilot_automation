@@ -15,6 +15,12 @@ logger = get_logger(__name__)
 
 
 class CopilotController:
+    MARKDOWN_INSTRUCTION = (
+        "For every prompt I give to Copilot, always return the response in nicely formatted, "
+        "structured Markdown by default. Do not use HTML or plain text. Ensure the Markdown "
+        "includes proper headings, lists, code blocks (where appropriate), and consistent formatting for readability."
+    )
+
     def __init__(self) -> None:
         self._playwright = None
         self.browser: Optional[Browser] = None
@@ -57,8 +63,9 @@ class CopilotController:
         assert self.page
         await self.page.goto(self.settings.copilot_url)
         await prepare_chat_ui(self.page)
-        await _send_prompt(self.page, prompt)
-        return await _read_response_text(self.page, exclude_text=prompt)
+        final_prompt = self._decorate_prompt(prompt)
+        await _send_prompt(self.page, final_prompt)
+        return await _read_response_text(self.page, exclude_text=final_prompt)
 
     async def ask_with_file(self, file_path: Path, prompt: str) -> str:
         await self.ensure_authenticated()
@@ -66,8 +73,9 @@ class CopilotController:
         await self.page.goto(self.settings.copilot_url)
         await prepare_chat_ui(self.page)
         await _upload_file(self.page, file_path)
-        await _send_prompt(self.page, prompt)
-        return await _read_response_text(self.page, exclude_text=prompt)
+        final_prompt = self._decorate_prompt(prompt)
+        await _send_prompt(self.page, final_prompt)
+        return await _read_response_text(self.page, exclude_text=final_prompt)
 
     async def download_response(self, target_dir: Path, timeout_ms: int = 45000) -> Path:
         assert self.page
@@ -89,3 +97,14 @@ class CopilotController:
             await self.browser.close()
         if self._playwright:
             await self._playwright.stop()
+
+    def _decorate_prompt(self, prompt: str) -> str:
+        if not self.settings.force_markdown_responses:
+            return prompt
+        instruction = self.MARKDOWN_INSTRUCTION.strip()
+        if instruction.lower() in prompt.lower():
+            return prompt
+        prompt = prompt.rstrip()
+        if prompt:
+            return f"{prompt}\n\n{instruction}"
+        return instruction

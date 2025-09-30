@@ -74,12 +74,14 @@ M365_COPILOT_E2E=1 PYTHONPATH=$(pwd) pytest -m copilot_e2e
 | `M365_COPILOT_E2E` | Opt-in flag for live tests | disabled |
 | `BROWSER_HEADLESS` | Force headless/headed (`true`/`false`) | `true` |
 | `OUTPUT_DIRECTORY` | Default output dir for artifacts | `./output` |
+| `COPILOT_FORCE_MARKDOWN` | Append instruction so Copilot replies in Markdown (`true`/`false`) | `true` |
 
 ## CLI
 
 Global options (apply to all commands):
 - `--headless/--headed`: Run browser headless or headed (default: headless)
 - `--output-dir DIRECTORY`: Set output directory (created if missing)
+- `--force-markdown/--no-force-markdown`: Toggle automatic Markdown instruction in prompts
 - `--log-level [DEBUG|INFO|WARNING|ERROR]`: Control log verbosity
 
 ```bash

@@ -199,6 +199,7 @@ def make_settings(tmp_path):
             "username": "user@example.com",
             "password": "super-secret",
             "mfa_secret": None,
+            "force_markdown_responses": False,
         }
         data.update(overrides)
         return SimpleNamespace(**data)
@@ -274,6 +275,40 @@ def test_chat_sends_prompt_and_returns_response(monkeypatch, make_settings):
         send_mock.assert_called_once_with(page, prompt)
         read_mock.assert_called_once_with(page, exclude_text=prompt)
         perform_login_mock.assert_not_called()
+
+        await controller.close()
+
+    asyncio.run(run())
+
+
+def test_chat_appends_markdown_instruction_when_enabled(monkeypatch, make_settings):
+    async def run():
+        settings = make_settings(force_markdown_responses=True)
+        settings.storage_state_path.write_text("{}")
+
+        page = DummyPage()
+        manager, browser, context, _, _ = build_playwright_stack(page)
+
+        prepare_mock = AsyncSpy()
+        send_mock = AsyncSpy()
+        read_mock = AsyncSpy(return_value="generated answer")
+
+        monkeypatch.setattr(copilot_module, "get_settings", lambda: settings)
+        monkeypatch.setattr(copilot_module, "async_playwright", lambda: manager)
+        monkeypatch.setattr(copilot_module, "prepare_chat_ui", prepare_mock)
+        monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
+        monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+
+        controller = CopilotController()
+        await controller.start()
+
+        prompt = "Summarise the quarterly report"
+        decorated = f"{prompt}\n\n{CopilotController.MARKDOWN_INSTRUCTION}"
+
+        await controller.chat(prompt)
+
+        send_mock.assert_called_once_with(page, decorated)
+        read_mock.assert_called_once_with(page, exclude_text=decorated)
 
         await controller.close()
 
