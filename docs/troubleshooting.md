@@ -24,7 +24,7 @@
 - Set `PWDEBUG=1` to use Playwright Inspector and watch where the script waits.
 - Ensure `M365_COPILOT_E2E=1` is set and credentials/storage state are available.
 - Copilot occasionally refuses downloads; the test skips when that happens.
-- Disable the automatic Markdown instruction temporarily with `--no-force-markdown` or `COPILOT_FORCE_MARKDOWN=false` if you need to compare raw responses.
+- Disable the automatic Markdown instruction with `--no-force-markdown` (or `COPILOT_FORCE_MARKDOWN=false`) and turn off response normalisation via `--raw-markdown` / `COPILOT_NORMALIZE_MARKDOWN=false` if you need to inspect Copilot's raw output.
 
 ## CLI Tips
 

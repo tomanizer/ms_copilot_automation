@@ -36,6 +36,7 @@ class Settings(BaseModel):
 
     # Prompt behaviour
     force_markdown_responses: bool = Field(default=(os.getenv("COPILOT_FORCE_MARKDOWN", "true").lower() == "true"))
+    normalize_markdown: bool = Field(default=(os.getenv("COPILOT_NORMALIZE_MARKDOWN", "true").lower() == "true"))
 
     # Storage state
     storage_state_path: Path = Field(default=Path("playwright/auth/user.json"))

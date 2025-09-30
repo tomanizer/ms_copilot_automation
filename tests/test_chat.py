@@ -25,12 +25,13 @@ def test_score_prefers_structured_response():
 
 def test_normalise_response_decodes_entities_and_drops_citations():
     raw = (
-        "  Donald Duck is great&#33;\n"
+        "Copilot said  Donald Duck is great&#33;\n"
         "voice[&#95;{{{CITATION{{{&#95;1{](https://example.com).\n\n"
         "Line with trailing spaces   \n"
         "--- ## Heading without newline\n"
         "Content\n"
         "Summary: item overview - First bullet - Second bullet - 1. Ordered\n"
+        "Edit in a page"
     )
 
     normalised = _normalise_response(raw)

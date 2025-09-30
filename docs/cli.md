@@ -9,6 +9,7 @@ The CLI is the primary interface for automating Microsoft Copilot interactions. 
 | `--headless/--headed` | Switch browser mode. | Headless |
 | `--output-dir PATH` | Override the default output directory (`OUTPUT_DIRECTORY` env). | `./output` |
 | `--force-markdown/--no-force-markdown` | Toggle automatic Markdown instruction appended to prompts. | Config value |
+| `--normalize-markdown/--raw-markdown` | Post-process Copilot output or leave the raw response. | Config value |
 | `--log-level LEVEL` | Override logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). | `INFO` |
 
 Global options must appear before the subcommand. Example:
@@ -69,6 +70,7 @@ The CLI pulls additional configuration from environment variables or `.env`:
 - `M365_COPILOT_URL`
 - `BROWSER_HEADLESS`
 - `OUTPUT_DIRECTORY`
+- `COPILOT_NORMALIZE_MARKDOWN`
 - `COPILOT_FORCE_MARKDOWN`
 
 See the [Environment Reference](getting-started.md#configure-secrets) for full details.

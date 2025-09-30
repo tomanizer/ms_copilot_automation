@@ -27,6 +27,7 @@ class GlobalState:
         self.headless: Optional[bool] = None
         self.output_dir: Optional[Path] = None
         self.force_markdown: Optional[bool] = None
+        self.normalize_markdown: Optional[bool] = None
 
 
 gstate = GlobalState()
@@ -36,6 +37,7 @@ gstate = GlobalState()
 @click.option("--headless/--headed", default=True, help="Run browser headless or headed")
 @click.option("--output-dir", type=click.Path(file_okay=False), default=None, help="Output directory")
 @click.option("--force-markdown/--no-force-markdown", default=None, help="Append instruction so Copilot responds in Markdown")
+@click.option("--normalize-markdown/--raw-markdown", default=None, help="Control whether responses are post-processed into Markdown")
 @click.option("--log-level", type=click.Choice(["DEBUG","INFO","WARNING","ERROR"], case_sensitive=False), default=None)
 @click.pass_context
 def cli(
@@ -43,12 +45,14 @@ def cli(
     headless: bool,
     output_dir: Optional[str],
     force_markdown: Optional[bool],
+    normalize_markdown: Optional[bool],
     log_level: Optional[str],
 ) -> None:
     """MS365 Copilot automation CLI."""
     gstate.headless = headless
     gstate.output_dir = Path(output_dir) if output_dir else None
     gstate.force_markdown = force_markdown
+    gstate.normalize_markdown = normalize_markdown
     if log_level:
         os.environ["LOG_LEVEL"] = log_level.upper()
 
@@ -63,6 +67,8 @@ def _apply_overrides():
         settings.output_directory.mkdir(parents=True, exist_ok=True)
     if gstate.force_markdown is not None:
         settings.force_markdown_responses = gstate.force_markdown
+    if gstate.normalize_markdown is not None:
+        settings.normalize_markdown = gstate.normalize_markdown
     return settings
 
 

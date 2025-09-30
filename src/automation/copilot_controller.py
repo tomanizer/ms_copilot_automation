@@ -16,9 +16,9 @@ logger = get_logger(__name__)
 
 class CopilotController:
     MARKDOWN_INSTRUCTION = (
-        "For every prompt I give to Copilot, always return the response in nicely formatted, "
-        "structured Markdown by default. Do not use HTML or plain text. Ensure the Markdown "
-        "includes proper headings, lists, code blocks (where appropriate), and consistent formatting for readability."
+        "Respond strictly in well-structured Markdown. Do not include phrases such as 'Copilot said' or follow-up questions/prompts. "
+        "Use # headings, paragraphs separated by blank lines, '-' for unordered lists, and '1.' for ordered lists. Represent tabular "
+        "data with Markdown tables when appropriate, and embed references as Markdown links instead of footnote citations."
     )
 
     def __init__(self) -> None:
@@ -65,7 +65,9 @@ class CopilotController:
         await prepare_chat_ui(self.page)
         final_prompt = self._decorate_prompt(prompt)
         await _send_prompt(self.page, final_prompt)
-        return await _read_response_text(self.page, exclude_text=final_prompt)
+        return await _read_response_text(
+            self.page, exclude_text=final_prompt, normalise=self.settings.normalize_markdown
+        )
 
     async def ask_with_file(self, file_path: Path, prompt: str) -> str:
         await self.ensure_authenticated()
@@ -75,7 +77,9 @@ class CopilotController:
         await _upload_file(self.page, file_path)
         final_prompt = self._decorate_prompt(prompt)
         await _send_prompt(self.page, final_prompt)
-        return await _read_response_text(self.page, exclude_text=final_prompt)
+        return await _read_response_text(
+            self.page, exclude_text=final_prompt, normalise=self.settings.normalize_markdown
+        )
 
     async def download_response(self, target_dir: Path, timeout_ms: int = 45000) -> Path:
         assert self.page

@@ -14,6 +14,13 @@ MESSAGE_SELECTORS = (
     '[data-testid="message"]',
 )
 
+RAW_MARKDOWN_SELECTORS = (
+    'div[data-testid="markdown"] pre',
+    'div:has(> pre)[data-testid="markdown"] pre',
+    'div.rounded-b-xl pre',
+    'pre.markdown',
+)
+
 CITATION_PATTERN = re.compile(r"\[_\{\{\{CITATION\{\{\{_?\d+\{\]\([^)]+\)")
 
 
@@ -58,6 +65,28 @@ async def get_last_message_text(page: Page) -> Optional[str]:
             continue
     filtered = _filter_candidates(candidates, None)
     return filtered[-1] if filtered else None
+
+
+async def _extract_raw_markdown(page: Page) -> Optional[str]:
+    latest: Optional[str] = None
+    for selector in RAW_MARKDOWN_SELECTORS:
+        try:
+            locator = page.locator(selector)
+            count = await locator.count()
+        except Exception:
+            continue
+        if not count:
+            continue
+        for index in range(count):
+            try:
+                text = await locator.nth(index).text_content()
+            except Exception:
+                continue
+            if text and text.strip():
+                latest = text.strip()
+        if latest:
+            break
+    return latest
 
 
 def _filter_candidates(candidates: List[str], exclude_text: Optional[str]) -> List[str]:
@@ -111,29 +140,38 @@ def _score(text: str) -> Tuple[int, int]:
 
 def _normalise_response(text: str) -> str:
     text = unescape(text)
-    text = CITATION_PATTERN.sub("", text)
-    text = re.sub(r"\r", "", text)
-    text = re.sub(r"[ \t]+\n", "\n", text)
-    text = re.sub(r"\n[ \t]+", "\n", text)
-    text = re.sub(r"^[ \t]+", "", text, flags=re.MULTILINE)
-    text = re.sub(r"(?:^|\n)\s*-{3,}\s*(?=\n|$)", "\n\n---\n\n", text)
-    text = re.sub(
-        r"(?<!\n)(#{1,6}\s+[^\n]+)",
-        lambda m: "\n\n" + m.group(1).strip(),
-        text,
-    )
-    text = re.sub(
-        r"(---)\s+(#{1,6}\s+[^\n]+)",
-        lambda m: f"{m.group(1)}\n\n{m.group(2).strip()}",
-        text,
-    )
-    text = re.sub(r"(?<!\n)[ \t]+([-*•]\s)", r"\n\1", text)
-    text = re.sub(r"(?<![\n-])[ \t]+(\d+\.\s)", r"\n\1", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = text.replace("---", r"\n---\n")
+    text = text.replace("#", r"\n#")
+    # text = CITATION_PATTERN.sub("", text)
+    # text = re.sub(r"\r", "", text)
+    # text = re.sub(r"[ \t]+\n", "\n", text)
+    # text = re.sub(r"\n[ \t]+", "\n", text)
+    # text = re.sub(r"^[ \t]+", "", text, flags=re.MULTILINE)
+    # text = re.sub(r"(?:^|\n)\s*-{3,}\s*(?=\n|$)", "\n\n---\n\n", text)
+    # text = re.sub(
+    #     r"(?<!\n)(#{1,6}\s+[^\n]+)",
+    #     lambda m: "\n\n" + m.group(1).strip(),
+    #     text,
+    # )
+    # text = re.sub(
+    #     r"(---)\s+(#{1,6}\s+[^\n]+)",
+    #     lambda m: f"{m.group(1)}\n\n{m.group(2).strip()}",
+    #     text,
+    # )
+    # text = re.sub(r"(?<!\n)[ \t]+([-*•]\s)", r"\n\1", text)
+    # text = re.sub(r"(?<![\n-])[ \t]+(\d+\.\s)", r"\n\1", text)
+    # text = re.sub(r"\n{3,}", "\n\n", text)
+    # text = re.sub(r"^copilot said\s*", "", text, flags=re.IGNORECASE)
+    # text = re.sub(r"\n?Edit in a page\s*$", "", text, flags=re.IGNORECASE)
     return text.strip()
 
 
-async def read_response_text(page: Page, timeout_ms: int = 90000, exclude_text: Optional[str] = None) -> str:
+async def read_response_text(
+    page: Page,
+    timeout_ms: int = 90000,
+    exclude_text: Optional[str] = None,
+    normalise: bool = True,
+) -> str:
     await page.wait_for_load_state("networkidle")
 
     interval_ms = 1000
@@ -158,21 +196,37 @@ async def read_response_text(page: Page, timeout_ms: int = 90000, exclude_text: 
                 last_best = best
                 stable_ticks = 0
             if stable_ticks >= 2:
-                return _normalise_response(last_best)
+                if not normalise:
+                    raw = await _extract_raw_markdown(page)
+                    if raw:
+                        return raw
+                return _normalise_response(last_best) if normalise else last_best
         await page.wait_for_timeout(interval_ms)
         elapsed += interval_ms
 
     if last_best:
-        return _normalise_response(last_best)
+        if not normalise:
+            raw = await _extract_raw_markdown(page)
+            if raw:
+                return raw
+        return _normalise_response(last_best) if normalise else last_best
     base = await get_last_message_text(page)
     if base:
-        return _normalise_response(base)
+        if not normalise:
+            raw = await _extract_raw_markdown(page)
+            if raw:
+                return raw
+        return _normalise_response(base) if normalise else base
     try:
         main = await page.inner_text("main")
         if exclude_text and exclude_text.strip() in main:
             main = main.replace(exclude_text, "").strip()
         if main:
-            return _normalise_response(main)
+            if not normalise:
+                raw = await _extract_raw_markdown(page)
+                if raw:
+                    return raw
+            return _normalise_response(main) if normalise else main
     except Exception:
         pass
     return ""

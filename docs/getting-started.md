@@ -35,6 +35,7 @@ python -m playwright install chromium
    # echo "M365_COPILOT_URL=https://copilot.microsoft.com" >> .env
    # echo "M365_COPILOT_E2E=1" >> .env  # only if you plan to run live tests
    # echo "COPILOT_FORCE_MARKDOWN=false" >> .env  # disable automatic markdown instruction
+   # echo "COPILOT_NORMALIZE_MARKDOWN=false" >> .env  # keep Copilot response unmodified
    ```
 
 2. Store your password (and optional TOTP secret) securely:

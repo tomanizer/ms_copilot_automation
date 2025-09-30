@@ -200,6 +200,7 @@ def make_settings(tmp_path):
             "password": "super-secret",
             "mfa_secret": None,
             "force_markdown_responses": False,
+            "normalize_markdown": True,
         }
         data.update(overrides)
         return SimpleNamespace(**data)
@@ -273,7 +274,7 @@ def test_chat_sends_prompt_and_returns_response(monkeypatch, make_settings):
         assert result == "generated answer"
         prepare_mock.assert_called_once_with(page)
         send_mock.assert_called_once_with(page, prompt)
-        read_mock.assert_called_once_with(page, exclude_text=prompt)
+        read_mock.assert_called_once_with(page, exclude_text=prompt, normalise=settings.normalize_markdown)
         perform_login_mock.assert_not_called()
 
         await controller.close()
@@ -308,7 +309,42 @@ def test_chat_appends_markdown_instruction_when_enabled(monkeypatch, make_settin
         await controller.chat(prompt)
 
         send_mock.assert_called_once_with(page, decorated)
-        read_mock.assert_called_once_with(page, exclude_text=decorated)
+        read_mock.assert_called_once_with(page, exclude_text=decorated, normalise=settings.normalize_markdown)
+
+        await controller.close()
+
+    asyncio.run(run())
+
+
+def test_chat_uses_raw_response_when_normalise_disabled(monkeypatch, make_settings):
+    async def run():
+        settings = make_settings(force_markdown_responses=True, normalize_markdown=False)
+        settings.storage_state_path.write_text("{}")
+
+        page = DummyPage()
+        manager, browser, context, _, _ = build_playwright_stack(page)
+
+        prepare_mock = AsyncSpy()
+        send_mock = AsyncSpy()
+        read_mock = AsyncSpy(return_value="raw answer")
+
+        monkeypatch.setattr(copilot_module, "get_settings", lambda: settings)
+        monkeypatch.setattr(copilot_module, "async_playwright", lambda: manager)
+        monkeypatch.setattr(copilot_module, "prepare_chat_ui", prepare_mock)
+        monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
+        monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+
+        controller = CopilotController()
+        await controller.start()
+
+        prompt = "Summarise the quarterly report"
+        decorated = f"{prompt}\n\n{CopilotController.MARKDOWN_INSTRUCTION}"
+
+        result = await controller.chat(prompt)
+
+        assert result == "raw answer"
+        send_mock.assert_called_once_with(page, decorated)
+        read_mock.assert_called_once_with(page, exclude_text=decorated, normalise=False)
 
         await controller.close()
 
@@ -350,7 +386,7 @@ def test_ask_with_file_uploads_before_prompt(monkeypatch, make_settings, tmp_pat
         prepare_mock.assert_called_once_with(page)
         upload_mock.assert_called_once_with(page, file_path)
         send_mock.assert_called_once_with(page, prompt)
-        read_mock.assert_called_once_with(page, exclude_text=prompt)
+        read_mock.assert_called_once_with(page, exclude_text=prompt, normalise=settings.normalize_markdown)
         perform_login_mock.assert_not_called()
 
         await controller.close()
