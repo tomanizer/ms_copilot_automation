@@ -28,7 +28,7 @@
 ## CLI Tips
 
 - Use `--headed` for manual observation; `--headless` is default.
-- `PWDEBUG=1 python -m src.cli.main ...` opens the inspector for a single command.
+- `PWDEBUG=1 ms-copilot ...` opens the inspector for a single command.
 - Delete `playwright/auth/user.json` if the session becomes invalid.
 
 ## Config Changes Not Applied

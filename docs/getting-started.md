@@ -19,8 +19,9 @@ cd ms_copilot_automation
 python3 -m venv venv
 source venv/bin/activate
 
-# Install dependencies and Playwright browsers
+# Install dependencies, package, and Playwright browsers
 pip install -r requirements.txt
+pip install -e .
 python -m playwright install chromium
 ```
 
@@ -53,7 +54,7 @@ python -m playwright install chromium
 Run the manual authentication flow once to save a storage state:
 
 ```bash
-python -m src.cli.main --headed auth --manual
+ms-copilot --headed auth --manual
 ```
 
 A browser window opens. Complete the Microsoft login. Press `Ctrl+C` in the terminal after you see Copilot ready; the automation saves state at regular intervals to `playwright/auth/user.json`.
@@ -61,13 +62,13 @@ A browser window opens. Complete the Microsoft login. Press `Ctrl+C` in the term
 ## First Chat
 
 ```bash
-python -m src.cli.main chat "Say hello in three words"
+ms-copilot chat "Say hello in three words"
 ```
 
 ## Upload + Summarise
 
 ```bash
-python -m src.cli.main --output-dir output ask-with-file docs/report.docx \
+ms-copilot --output-dir output ask-with-file docs/report.docx \
   "Summarise this document into bullet points" --download
 ```
 

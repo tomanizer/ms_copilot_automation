@@ -1,6 +1,6 @@
 # Command Line Usage
 
-The CLI is the primary interface for automating Microsoft Copilot interactions. All commands live under `python -m src.cli.main`.
+The CLI is the primary interface for automating Microsoft Copilot interactions. After installing the project (`pip install -e .`), a console script named `ms-copilot` becomes available.
 
 ## Global Options
 
@@ -13,13 +13,13 @@ The CLI is the primary interface for automating Microsoft Copilot interactions. 
 Global options must appear before the subcommand. Example:
 
 ```bash
-python -m src.cli.main --headed --log-level DEBUG chat "Create a haiku about coffee"
+ms-copilot --headed --log-level DEBUG chat "Create a haiku about coffee"
 ```
 
 ## Authentication
 
 ```bash
-python -m src.cli.main auth [OPTIONS]
+ms-copilot auth [OPTIONS]
 ```
 
 - `--manual`: open a headed browser and keep saving storage state until you interrupt (best for initial setup).
@@ -28,9 +28,9 @@ python -m src.cli.main auth [OPTIONS]
 Examples:
 
 ```bash
-python -m src.cli.main --headed auth --manual
-python -m src.cli.main auth --interactive
-python -m src.cli.main auth  # uses env/keyring credentials
+ms-copilot --headed auth --manual
+ms-copilot auth --interactive
+ms-copilot auth  # uses env/keyring credentials
 ```
 
 ## Chat
@@ -38,8 +38,8 @@ python -m src.cli.main auth  # uses env/keyring credentials
 Send a prompt and print or save the response.
 
 ```bash
-python -m src.cli.main chat "Draft a short status update"
-python -m src.cli.main chat "Draft a short status update" --out output/status.md
+ms-copilot chat "Draft a short status update"
+ms-copilot chat "Draft a short status update" --out output/status.md
 ```
 
 ## Ask With File
@@ -47,9 +47,9 @@ python -m src.cli.main chat "Draft a short status update" --out output/status.md
 Upload a file, send a prompt, optionally download generated artifacts.
 
 ```bash
-python -m src.cli.main ask-with-file /path/to/report.pdf "Summarise key risks"
-python -m src.cli.main ask-with-file report.docx "Summarise" --out output/summary.txt
-python -m src.cli.main ask-with-file slides.pptx "Draft speaker notes" --download --download-dir output/artifacts
+ms-copilot ask-with-file /path/to/report.pdf "Summarise key risks"
+ms-copilot ask-with-file report.docx "Summarise" --out output/summary.txt
+ms-copilot ask-with-file slides.pptx "Draft speaker notes" --download --download-dir output/artifacts
 ```
 
 ## Download
@@ -57,7 +57,7 @@ python -m src.cli.main ask-with-file slides.pptx "Draft speaker notes" --downloa
 Wait for Copilot to offer the next downloadable artifact in the current chat.
 
 ```bash
-python -m src.cli.main download --timeout 90 --out output/downloads
+ms-copilot download --timeout 90 --out output/downloads
 ```
 
 ## Environment Variables
@@ -73,6 +73,6 @@ See the [Environment Reference](getting-started.md#configure-secrets) for full d
 
 ## Tips
 
-- Use `python -m src.cli.main --headed ...` to watch the browser and debug selectors.
+- Use `ms-copilot --headed ...` to watch the browser and debug selectors.
 - Set `PWDEBUG=1` to launch the Playwright Inspector for step-by-step tracing.
 - Delete `playwright/auth/user.json` if you need a fresh login.

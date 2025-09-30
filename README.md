@@ -18,8 +18,9 @@ Minimal CLI to:
 python3 -m venv venv
 source venv/bin/activate
 
-# 2) Install deps and browsers
+# 2) Install deps, browsers, and register CLI
 pip install -r requirements.txt
+pip install -e .
 python -m playwright install chromium
 
 # 3) Set secrets
@@ -36,11 +37,11 @@ PY
 # echo '{"M365_PASSWORD": "...", "M365_OTP_SECRET": "..."}' > .keyring.json
 
 # 4) Manual auth (headed) to persist session (saves state every few seconds)
-python -m src.cli.main --headed auth --manual
+ms-copilot --headed auth --manual
 # A browser opens. Complete Microsoft login. Press Ctrl+C when done.
 
 # 5) Chat (headless by default)
-python -m src.cli.main chat "Say hello"
+ms-copilot chat "Say hello"
 
 # 6) Upload + summarize to output/
 mkdir -p output
@@ -52,7 +53,7 @@ D.add_paragraph('Short test doc about productivity with AI assistants.')
 D.save('sample.docx')
 PY
 
-python -m src.cli.main --output-dir output ask-with-file sample.docx \
+ms-copilot --output-dir output ask-with-file sample.docx \
   "Summarize into concise markdown bullets only." --out output/summary.md --download
 
 # 7) Run tests (optional)
@@ -83,22 +84,22 @@ Global options (apply to all commands):
 
 ```bash
 # Auth
-python -m src.cli.main --headed auth --manual             # headed, manual (saves state periodically)
-python -m src.cli.main auth --interactive                  # prompts for creds (username/password/TOTP)
-python -m src.cli.main auth                                # non-interactive (env/keyring)
+ms-copilot --headed auth --manual             # headed, manual (saves state periodically)
+ms-copilot auth --interactive                  # prompts for creds (username/password/TOTP)
+ms-copilot auth                                # non-interactive (env/keyring)
 
 # Chat
-python -m src.cli.main chat "Your prompt"                  # prints styled panel
-python -m src.cli.main chat "Your prompt" --out output/resp.txt
+ms-copilot chat "Your prompt"                  # prints styled panel
+ms-copilot chat "Your prompt" --out output/resp.txt
 
 # Upload + ask
-python -m src.cli.main ask-with-file /path/doc.docx "Summarize" \
+ms-copilot ask-with-file /path/doc.docx "Summarize" \
   --out output/summary.md --download
-python -m src.cli.main --headed ask-with-file sample.docx "Summarize" \
+ms-copilot --headed ask-with-file sample.docx "Summarize" \
   --download-dir output/downloads --download
 
 # Download latest artifact from current chat
-python -m src.cli.main download --timeout 90 --out output
+ms-copilot download --timeout 90 --out output
 ```
 
 ## Notes
@@ -108,5 +109,5 @@ python -m src.cli.main download --timeout 90 --out output
 - Styled output via `rich` (panels, colors)
 - Secrets stored via `keyring` land in your OS credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service)
 - If keyring access is blocked, you can use `.keyring.json` as plaintext fallback (ignored by git)
-- Regenerate Playwright auth state anytime with `python -m src.cli.main --headed auth --manual`
+- Regenerate Playwright auth state anytime with `ms-copilot --headed auth --manual`
 - For debugging UI flows, run with `--headed` or `PWDEBUG=1` to open the Playwright inspector
