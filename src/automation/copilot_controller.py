@@ -65,9 +65,16 @@ class CopilotController:
         await _send_prompt(self.page, prompt)
         return await _read_response_text(self.page, exclude_text=prompt)
 
-    async def download_response(self, target_dir: Path) -> Path:
+    async def download_response(self, target_dir: Path, timeout_ms: int = 45000) -> Path:
         assert self.page
-        return await _download_next(self.page, target_dir)
+        logger.info("Starting download into %s", target_dir)
+        try:
+            path = await _download_next(self.page, target_dir, timeout_ms=timeout_ms)
+            logger.info("Download completed: %s", path)
+            return path
+        except RuntimeError as exc:
+            logger.warning("Download attempt failed: %s", exc)
+            raise
 
     async def close(self) -> None:
         if self.page:

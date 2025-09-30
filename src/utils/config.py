@@ -5,7 +5,7 @@ from typing import Optional
 
 import keyring
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from .logger import get_logger
 
@@ -34,8 +34,7 @@ class Settings(BaseModel):
     # Storage state
     storage_state_path: Path = Field(default=Path("playwright/auth/user.json"))
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
     def hydrate_from_keyring(self) -> None:
         """Fill missing sensitive values from OS keyring."""

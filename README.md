@@ -19,7 +19,7 @@ python -m playwright install
 # 3) Set secrets (recommended: keyring + .env for username)
 # .env (do not commit)
 echo "M365_USERNAME=your-email@domain.com" >> .env
-# Optional: set password and otp in keychain
+# Optional: set password and otp in OS keychain/credential store
 python - <<'PY'
 import keyring
 keyring.set_password('ms-copilot-automation','M365_PASSWORD','<your-password>')
@@ -44,7 +44,11 @@ D.add_paragraph('Short test doc about productivity with AI assistants.')
 D.save('sample.docx')
 PY
 
-python -m src.cli.main --output-dir output ask-with-file sample.docx "Summarize into concise markdown bullets only." --out output/summary.md
+python -m src.cli.main --output-dir output ask-with-file sample.docx \
+  "Summarize into concise markdown bullets only." --out output/summary.md --download
+
+# 7) Run tests (optional)
+PYTHONPATH=$(pwd) pytest -q
 ```
 
 ## CLI
@@ -65,11 +69,13 @@ python -m src.cli.main chat "Your prompt"                  # prints styled panel
 python -m src.cli.main chat "Your prompt" --out output/resp.txt
 
 # Upload + ask
-python -m src.cli.main ask-with-file /path/doc.docx "Summarize" --out output/summary.md
-python -m src.cli.main --headed ask-with-file sample.docx "Summarize" --out output/summary.md
+python -m src.cli.main ask-with-file /path/doc.docx "Summarize" \
+  --out output/summary.md --download
+python -m src.cli.main --headed ask-with-file sample.docx "Summarize" \
+  --download-dir output/downloads --download
 
-# Upload only (smoke)
-python -m src.cli.main upload /path/doc.docx
+# Download latest artifact from current chat
+python -m src.cli.main download --timeout 90 --out output
 ```
 
 ## Notes
@@ -77,3 +83,4 @@ python -m src.cli.main upload /path/doc.docx
 - Logs go to stdout; control via `--log-level` or `LOG_LEVEL` env var
 - Default output dir is current working directory; use `--output-dir` for convenience
 - Styled output via `rich` (panels, colors)
+- Secrets stored via `keyring` land in your OS credential store (macOS Keychain, Windows Credential Manager, Linux Secret Service)

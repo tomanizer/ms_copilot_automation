@@ -44,16 +44,6 @@ async def _collect_texts(page: Page, selector: str) -> List[str]:
     return texts
 
 
-async def count_messages(page: Page) -> int:
-    total = 0
-    for selector in MESSAGE_SELECTORS:
-        try:
-            total += await page.locator(selector).count()
-        except Exception:
-            continue
-    return total
-
-
 async def get_last_message_text(page: Page) -> Optional[str]:
     candidates: List[str] = []
     for selector in MESSAGE_SELECTORS:
