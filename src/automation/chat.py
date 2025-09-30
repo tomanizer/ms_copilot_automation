@@ -112,9 +112,24 @@ def _score(text: str) -> Tuple[int, int]:
 def _normalise_response(text: str) -> str:
     text = unescape(text)
     text = CITATION_PATTERN.sub("", text)
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"\r", "", text)
     text = re.sub(r"[ \t]+\n", "\n", text)
     text = re.sub(r"\n[ \t]+", "\n", text)
+    text = re.sub(r"^[ \t]+", "", text, flags=re.MULTILINE)
+    text = re.sub(r"(?:^|\n)\s*-{3,}\s*(?=\n|$)", "\n\n---\n\n", text)
+    text = re.sub(
+        r"(?<!\n)(#{1,6}\s+[^\n]+)",
+        lambda m: "\n\n" + m.group(1).strip(),
+        text,
+    )
+    text = re.sub(
+        r"(---)\s+(#{1,6}\s+[^\n]+)",
+        lambda m: f"{m.group(1)}\n\n{m.group(2).strip()}",
+        text,
+    )
+    text = re.sub(r"(?<!\n)[ \t]+([-*•]\s)", r"\n\1", text)
+    text = re.sub(r"(?<![\n-])[ \t]+(\d+\.\s)", r"\n\1", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
 
