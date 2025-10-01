@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from ..automation.constants import DEFAULT_MAX_PROMPT_CHARS
 from .logger import get_logger
 
 load_dotenv(dotenv_path=Path(".env"), override=False)
@@ -41,6 +42,10 @@ class Settings(BaseSettings):
     )
     normalize_markdown: bool = Field(
         default=(os.getenv("COPILOT_NORMALIZE_MARKDOWN", "true").lower() == "true")
+    )
+    max_prompt_chars: int = Field(
+        default=int(os.getenv("COPILOT_MAX_PROMPT_CHARS", str(DEFAULT_MAX_PROMPT_CHARS))),
+        alias="COPILOT_MAX_PROMPT_CHARS",
     )
 
     # Storage state
