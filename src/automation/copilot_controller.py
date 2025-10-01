@@ -6,6 +6,7 @@ from typing import Any
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 from ..auth.m365_auth import perform_login
+from ..utils.chunking import build_copilot_chunk_messages
 from ..utils.config import get_settings
 from ..utils.logger import get_logger
 from .chat import read_response_text as _read_response_text
@@ -129,10 +130,22 @@ class CopilotController:
         assert self.page
         await self.page.goto(self.settings.copilot_url)
         await prepare_chat_ui(self.page)
-        final_prompt = self._decorate_prompt(prompt)
-        await _send_prompt(self.page, final_prompt)
+        decorated = self._decorate_prompt(prompt)
+        # Build potentially chunked messages with final instruction included in last part
+        final_instruction = (
+            None if not self.settings.force_markdown_responses else MARKDOWN_INSTRUCTION
+        )
+        max_chars = getattr(self.settings, "max_prompt_chars", 1_000_000)
+        messages = build_copilot_chunk_messages(
+            decorated if not self.settings.force_markdown_responses else prompt,
+            max_chars,
+            final_instruction=final_instruction,
+        )
+        last_message = messages[-1]
+        for msg in messages:
+            await _send_prompt(self.page, msg)
         return await _read_response_text(
-            self.page, exclude_text=final_prompt, normalise=self.settings.normalize_markdown
+            self.page, exclude_text=last_message, normalise=self.settings.normalize_markdown
         )
 
     async def ask_with_file(self, file_path: Path, prompt: str) -> str:
@@ -141,10 +154,21 @@ class CopilotController:
         await self.page.goto(self.settings.copilot_url)
         await prepare_chat_ui(self.page)
         await _upload_file(self.page, file_path)
-        final_prompt = self._decorate_prompt(prompt)
-        await _send_prompt(self.page, final_prompt)
+        decorated = self._decorate_prompt(prompt)
+        final_instruction = (
+            None if not self.settings.force_markdown_responses else MARKDOWN_INSTRUCTION
+        )
+        max_chars = getattr(self.settings, "max_prompt_chars", 1_000_000)
+        messages = build_copilot_chunk_messages(
+            decorated if not self.settings.force_markdown_responses else prompt,
+            max_chars,
+            final_instruction=final_instruction,
+        )
+        last_message = messages[-1]
+        for msg in messages:
+            await _send_prompt(self.page, msg)
         return await _read_response_text(
-            self.page, exclude_text=final_prompt, normalise=self.settings.normalize_markdown
+            self.page, exclude_text=last_message, normalise=self.settings.normalize_markdown
         )
 
     async def download_response(self, target_dir: Path, timeout_ms: int = 45000) -> Path:

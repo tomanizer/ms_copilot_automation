@@ -475,3 +475,50 @@ def test_download_response_returns_path(monkeypatch, make_settings, tmp_path):
         await controller.close()
 
     asyncio.run(run())
+
+
+def test_chat_splits_long_prompt_and_instructs_order(monkeypatch, make_settings):
+    async def run():
+        # Configure small max to force splitting 12000-char prompt into 2 parts
+        settings = make_settings(force_markdown_responses=False)
+        settings.storage_state_path.write_text("{}")
+        # Use 10000 as max per user requirement constant
+        settings.max_prompt_chars = 10000
+
+        page = DummyPage()
+        manager, browser, context, _, _ = build_playwright_stack(page)
+
+        prepare_mock = AsyncSpy()
+        send_mock = AsyncSpy()
+        read_mock = AsyncSpy(return_value="ok")
+
+        monkeypatch.setattr(copilot_module, "get_settings", lambda: settings)
+        monkeypatch.setattr(copilot_module, "async_playwright", lambda: manager)
+        monkeypatch.setattr(copilot_module, "prepare_chat_ui", prepare_mock)
+        monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
+        monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+        monkeypatch.setattr(CopilotController, "_check_if_logged_in", _stub_logged_in)
+
+        controller = CopilotController()
+        await controller.start()
+
+        long_prompt = "A" * 12000
+        result = await controller.chat(long_prompt)
+
+        assert result == "ok"
+        # Expect two sends with 1/2 and 2/2 markers
+        assert len(send_mock.calls) == 2
+        first_args, _ = send_mock.calls[0]
+        second_args, _ = send_mock.calls[1]
+        assert "[Part 1/2]" in first_args[1]
+        assert "Do not respond yet" in first_args[1]
+        assert "[Part 2/2 - Final]" in second_args[1]
+        assert "Now process all parts above as a single prompt." in second_args[1]
+        # read should exclude the last message
+        assert len(read_mock.calls) == 1
+        _, read_kwargs = read_mock.calls[0]
+        assert read_kwargs.get("exclude_text") == second_args[1]
+
+        await controller.close()
+
+    asyncio.run(run())

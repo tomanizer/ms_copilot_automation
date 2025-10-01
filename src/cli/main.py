@@ -26,6 +26,7 @@ class GlobalState:
         self.output_dir: Path | None = None
         self.force_markdown: bool | None = None
         self.normalize_markdown: bool | None = None
+        self.max_prompt_chars: int | None = None
 
 
 gstate = GlobalState()
@@ -51,6 +52,12 @@ gstate = GlobalState()
     type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
     default=None,
 )
+@click.option(
+    "--max-prompt-chars",
+    type=int,
+    default=None,
+    help="Maximum characters per prompt message before automatic splitting",
+)
 @click.pass_context
 def cli(
     _ctx: click.Context,
@@ -59,12 +66,14 @@ def cli(
     force_markdown: bool | None,
     normalize_markdown: bool | None,
     log_level: str | None,
+    max_prompt_chars: int | None,
 ) -> None:
     """MS365 Copilot automation CLI."""
     gstate.headless = headless
     gstate.output_dir = Path(output_dir) if output_dir else None
     gstate.force_markdown = force_markdown
     gstate.normalize_markdown = normalize_markdown
+    gstate.max_prompt_chars = max_prompt_chars
     if log_level:
         os.environ["LOG_LEVEL"] = log_level.upper()
 
@@ -81,6 +90,8 @@ def _apply_overrides():
         settings.force_markdown_responses = gstate.force_markdown
     if gstate.normalize_markdown is not None:
         settings.normalize_markdown = gstate.normalize_markdown
+    if gstate.max_prompt_chars is not None:
+        settings.max_prompt_chars = gstate.max_prompt_chars
     return settings
 
 
