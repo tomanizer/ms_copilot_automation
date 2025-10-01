@@ -1,9 +1,19 @@
 # MS365 Copilot Automation (Python + Playwright)
 
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+[![Issues](https://img.shields.io/github/issues/tomanizer/ms_copilot_automation.svg)](https://github.com/tomanizer/ms_copilot_automation/issues)
+[![Pull Requests](https://img.shields.io/github/issues-pr/tomanizer/ms_copilot_automation.svg)](https://github.com/tomanizer/ms_copilot_automation/pulls)
+[![Last Commit](https://img.shields.io/github/last-commit/tomanizer/ms_copilot_automation.svg)](https://github.com/tomanizer/ms_copilot_automation/commits)
+
 Minimal CLI to:
 - Authenticate to MS365 Copilot (manual or scripted)
 - Send prompts and read responses
 - Upload a file and ask for a summary
+
+### New: Automatic Prompt Splitting
+- Long prompts are automatically split into ordered parts when exceeding input limits.
+- Each part is labeled (e.g., `[Part 1/2]`) and Copilot is instructed to wait until the final part.
+- On the final part, Copilot is instructed to process the full prompt as a single input.
 
 ## Requirements
 
@@ -76,6 +86,7 @@ M365_COPILOT_E2E=1 PYTHONPATH=$(pwd) pytest -m copilot_e2e
 | `OUTPUT_DIRECTORY` | Default output dir for artifacts | `./output` |
 | `COPILOT_FORCE_MARKDOWN` | Append instruction so Copilot replies in Markdown (`true`/`false`) | `true` |
 | `COPILOT_NORMALIZE_MARKDOWN` | Post-process Copilot output into tidy Markdown (`true`/`false`) | `true` |
+| `COPILOT_MAX_PROMPT_CHARS` | Max characters per prompt before auto-splitting | `10000` |
 
 ## CLI
 
@@ -85,6 +96,7 @@ Global options (apply to all commands):
 - `--force-markdown/--no-force-markdown`: Toggle automatic Markdown instruction in prompts
 - `--normalize-markdown/--raw-markdown`: Choose whether responses are normalised or left verbatim
 - `--log-level [DEBUG|INFO|WARNING|ERROR]`: Control log verbosity
+ - `--max-prompt-chars INTEGER`: Max characters per message before auto-splitting
 
 ```bash
 # Auth
