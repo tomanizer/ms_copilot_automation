@@ -51,6 +51,47 @@ pip install -e .
 python -m playwright install chromium
 ```
 
+## Behind a Firewall (Playwright alternatives)
+
+If `python -m playwright install chromium` is blocked by your firewall, you have two options:
+
+1. Configure Playwright to use an internal mirror (e.g., Artifactory) for browser binaries. See Playwright docs for `PLAYWRIGHT_BROWSERS_PATH` and enterprise mirrors. Coordinate with your IT team to expose the required artifacts internally.
+
+2. Point Playwright to an existing local Chrome/Chromium executable. Set one of the following and skip the browser install step:
+
+   - Environment variables:
+
+     - Unix/macOS:
+
+       ```bash
+       export BROWSER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+       # or use a channel (e.g. chrome, chrome-beta)
+       export BROWSER_CHANNEL="chrome"
+       ```
+
+     - Windows PowerShell:
+
+       ```powershell
+       $env:BROWSER_EXECUTABLE_PATH = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+       $env:BROWSER_CHANNEL = "chrome"
+       ```
+
+     - Windows CMD:
+
+       ```bat
+       set BROWSER_EXECUTABLE_PATH=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+       set BROWSER_CHANNEL=chrome
+       ```
+
+   - Or via `.env`:
+
+     ```env
+     BROWSER_EXECUTABLE_PATH=/path/to/chrome
+     BROWSER_CHANNEL=chrome
+     ```
+
+The controller will pass these through to Playwright's `chromium.launch(...)` so you can run without downloading browser binaries.
+
 ## Configure Secrets
 
 1. Create a `.env` file (ignored by git) to store your Copilot username and optional settings:

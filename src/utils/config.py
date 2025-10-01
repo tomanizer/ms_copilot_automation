@@ -35,6 +35,8 @@ class Settings(BaseSettings):
     browser_headless: bool = Field(
         default=(os.getenv("BROWSER_HEADLESS", "true").lower() == "true")
     )
+    browser_executable_path: str | None = Field(default=os.getenv("BROWSER_EXECUTABLE_PATH"))
+    browser_channel: str | None = Field(default=os.getenv("BROWSER_CHANNEL"))
 
     # Prompt behaviour
     force_markdown_responses: bool = Field(
