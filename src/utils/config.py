@@ -2,14 +2,13 @@ import json
 import os
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 import keyring
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from .logger import get_logger
-
 
 load_dotenv(dotenv_path=Path(".env"), override=False)
 _logger = get_logger(__name__)
@@ -17,7 +16,7 @@ _logger = get_logger(__name__)
 _KEYRING_FILE = Path(".keyring.json")
 
 
-class Settings(BaseModel):
+class Settings(BaseSettings):
     """Application settings loaded from env and keyring.
 
     Secrets precedence: environment variables first, then keyring (for
@@ -25,23 +24,31 @@ class Settings(BaseModel):
     """
 
     # Auth
-    username: Optional[str] = Field(default=None, alias="M365_USERNAME")
-    password: Optional[str] = Field(default=None, alias="M365_PASSWORD")
-    mfa_secret: Optional[str] = Field(default=None, alias="M365_OTP_SECRET")
+    username: str | None = Field(default=None, alias="M365_USERNAME")
+    password: str | None = Field(default=None, alias="M365_PASSWORD")
+    mfa_secret: str | None = Field(default=None, alias="M365_OTP_SECRET")
     copilot_url: str = Field(default="https://copilot.microsoft.com", alias="M365_COPILOT_URL")
 
     # Runtime
     output_directory: Path = Field(default=Path(os.getenv("OUTPUT_DIRECTORY", "./output")))
-    browser_headless: bool = Field(default=(os.getenv("BROWSER_HEADLESS", "true").lower() == "true"))
+    browser_headless: bool = Field(
+        default=(os.getenv("BROWSER_HEADLESS", "true").lower() == "true")
+    )
 
     # Prompt behaviour
-    force_markdown_responses: bool = Field(default=(os.getenv("COPILOT_FORCE_MARKDOWN", "true").lower() == "true"))
-    normalize_markdown: bool = Field(default=(os.getenv("COPILOT_NORMALIZE_MARKDOWN", "true").lower() == "true"))
+    force_markdown_responses: bool = Field(
+        default=(os.getenv("COPILOT_FORCE_MARKDOWN", "true").lower() == "true")
+    )
+    normalize_markdown: bool = Field(
+        default=(os.getenv("COPILOT_NORMALIZE_MARKDOWN", "true").lower() == "true")
+    )
 
     # Storage state
     storage_state_path: Path = Field(default=Path("playwright/auth/user.json"))
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = SettingsConfigDict(
+        populate_by_name=True, env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     def hydrate_from_keyring(self) -> None:
         """Fill missing sensitive values from OS keyring."""
@@ -81,4 +88,4 @@ def get_settings() -> Settings:
 
 def reset_settings_cache() -> None:
     """Clear the cached settings instance."""
-    get_settings.cache_clear()  # type: ignore[attr-defined]
+    get_settings.cache_clear()

@@ -1,7 +1,6 @@
 import asyncio
 import os
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
@@ -13,7 +12,6 @@ from ..automation.ui import prepare_chat_ui
 from ..utils.config import get_settings
 from ..utils.logger import get_logger
 
-
 console = Console()
 logger = get_logger(__name__)
 
@@ -24,10 +22,10 @@ def run(coro):
 
 class GlobalState:
     def __init__(self) -> None:
-        self.headless: Optional[bool] = None
-        self.output_dir: Optional[Path] = None
-        self.force_markdown: Optional[bool] = None
-        self.normalize_markdown: Optional[bool] = None
+        self.headless: bool | None = None
+        self.output_dir: Path | None = None
+        self.force_markdown: bool | None = None
+        self.normalize_markdown: bool | None = None
 
 
 gstate = GlobalState()
@@ -35,18 +33,32 @@ gstate = GlobalState()
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("--headless/--headed", default=True, help="Run browser headless or headed")
-@click.option("--output-dir", type=click.Path(file_okay=False), default=None, help="Output directory")
-@click.option("--force-markdown/--no-force-markdown", default=None, help="Append instruction so Copilot responds in Markdown")
-@click.option("--normalize-markdown/--raw-markdown", default=None, help="Control whether responses are post-processed into Markdown")
-@click.option("--log-level", type=click.Choice(["DEBUG","INFO","WARNING","ERROR"], case_sensitive=False), default=None)
+@click.option(
+    "--output-dir", type=click.Path(file_okay=False), default=None, help="Output directory"
+)
+@click.option(
+    "--force-markdown/--no-force-markdown",
+    default=None,
+    help="Append instruction so Copilot responds in Markdown",
+)
+@click.option(
+    "--normalize-markdown/--raw-markdown",
+    default=None,
+    help="Control whether responses are post-processed into Markdown",
+)
+@click.option(
+    "--log-level",
+    type=click.Choice(["DEBUG", "INFO", "WARNING", "ERROR"], case_sensitive=False),
+    default=None,
+)
 @click.pass_context
 def cli(
-    ctx: click.Context,
+    _ctx: click.Context,
     headless: bool,
-    output_dir: Optional[str],
-    force_markdown: Optional[bool],
-    normalize_markdown: Optional[bool],
-    log_level: Optional[str],
+    output_dir: str | None,
+    force_markdown: bool | None,
+    normalize_markdown: bool | None,
+    log_level: str | None,
 ) -> None:
     """MS365 Copilot automation CLI."""
     gstate.headless = headless
@@ -74,31 +86,45 @@ def _apply_overrides():
 
 @cli.command()
 @click.option("--interactive", is_flag=True, help="Prompt for secrets instead of env/keyring")
-@click.option("--manual", is_flag=True, help="Open headed browser and let you log in manually (keeps running)")
+@click.option(
+    "--manual", is_flag=True, help="Open headed browser and let you log in manually (keeps running)"
+)
 def auth(interactive: bool, manual: bool) -> None:
     """Authenticate and persist session."""
     settings = _apply_overrides()
     if manual:
+
         async def _manual():
             async with CopilotController() as ctl:
                 assert ctl.page and ctl.context
                 await ctl.page.goto(settings.copilot_url)
-                console.print(Panel.fit("Headed browser opened. Complete login in the browser.\nThis process saves auth state periodically. Press Ctrl+C when done.", title="Manual Auth", style="cyan"))
+                console.print(
+                    Panel.fit(
+                        "Headed browser opened. Complete login in the browser.\nThis process saves auth state periodically. Press Ctrl+C when done.",
+                        title="Manual Auth",
+                        style="cyan",
+                    )
+                )
                 try:
                     while True:
                         await asyncio.sleep(5)
                         await ctl.context.storage_state(path=str(settings.storage_state_path))
                 except asyncio.CancelledError:
                     pass
+
         try:
             run(_manual())
         except KeyboardInterrupt:
-            console.print("[green]Stopped. Auth state saved to[/] [bold]playwright/auth/user.json[/].")
+            console.print(
+                "[green]Stopped. Auth state saved to[/] [bold]playwright/auth/user.json[/]."
+            )
         return
 
     if interactive:
         settings.username = click.prompt("Username", type=str, default=settings.username or "")
-        settings.password = click.prompt("Password", type=str, default=settings.password or "", hide_input=True)
+        settings.password = click.prompt(
+            "Password", type=str, default=settings.password or "", hide_input=True
+        )
         if click.confirm("Provide TOTP secret?", default=False):
             settings.mfa_secret = click.prompt("MFA TOTP secret", type=str, hide_input=True)
 
@@ -112,8 +138,13 @@ def auth(interactive: bool, manual: bool) -> None:
 
 @cli.command()
 @click.argument("prompt", type=str)
-@click.option("--out", type=click.Path(dir_okay=False, writable=True), default=None, help="Write response to file")
-def chat(prompt: str, out: Optional[str]) -> None:
+@click.option(
+    "--out",
+    type=click.Path(dir_okay=False, writable=True),
+    default=None,
+    help="Write response to file",
+)
+def chat(prompt: str, out: str | None) -> None:
     """Send a prompt and show/write the response."""
     _apply_overrides()
 
@@ -134,16 +165,32 @@ def chat(prompt: str, out: Optional[str]) -> None:
 @cli.command(name="ask-with-file")
 @click.argument("file_path", type=click.Path(exists=True, dir_okay=False))
 @click.argument("prompt", type=str)
-@click.option("--out", type=click.Path(dir_okay=False, writable=True), default=None, help="Write response to file")
+@click.option(
+    "--out",
+    type=click.Path(dir_okay=False, writable=True),
+    default=None,
+    help="Write response to file",
+)
 @click.option("--download", is_flag=True, help="Wait for Copilot to offer a downloadable artifact")
-@click.option("--download-dir", type=click.Path(file_okay=False), default=None, help="Directory for downloaded files")
-@click.option("--download-timeout", type=int, default=60, show_default=True, help="Seconds to wait for downloadable artifact")
+@click.option(
+    "--download-dir",
+    type=click.Path(file_okay=False),
+    default=None,
+    help="Directory for downloaded files",
+)
+@click.option(
+    "--download-timeout",
+    type=int,
+    default=60,
+    show_default=True,
+    help="Seconds to wait for downloadable artifact",
+)
 def ask_with_file_cmd(
     file_path: str,
     prompt: str,
-    out: Optional[str],
+    out: str | None,
     download: bool,
-    download_dir: Optional[str],
+    download_dir: str | None,
     download_timeout: int,
 ) -> None:
     """Upload file, ask prompt, return response."""
@@ -177,13 +224,23 @@ def ask_with_file_cmd(
         if artifact:
             console.print(f"[green]Downloaded[/] {artifact}")
         else:
-            console.print("[yellow]Copilot did not provide a downloadable artifact within the timeout.[/]")
+            console.print(
+                "[yellow]Copilot did not provide a downloadable artifact within the timeout.[/]"
+            )
 
 
 @cli.command()
-@click.option("--out", type=click.Path(file_okay=False), default=None, help="Directory to save the download")
-@click.option("--timeout", type=int, default=60, show_default=True, help="Seconds to wait for a downloadable artifact")
-def download(out: Optional[str], timeout: int) -> None:
+@click.option(
+    "--out", type=click.Path(file_okay=False), default=None, help="Directory to save the download"
+)
+@click.option(
+    "--timeout",
+    type=int,
+    default=60,
+    show_default=True,
+    help="Seconds to wait for a downloadable artifact",
+)
+def download(out: str | None, timeout: int) -> None:
     """Download the next artifact offered in the current Copilot conversation."""
     settings = _apply_overrides()
     target_dir = Path(out) if out else settings.output_directory

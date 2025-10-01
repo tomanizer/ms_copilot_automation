@@ -1,21 +1,12 @@
 from playwright.async_api import Page
+from .constants import SELECTOR_WAIT_MS, UI_CLEANUP_SELECTORS
 
 
 async def prepare_chat_ui(page: Page) -> None:
     # Try to accept cookies/permissions and close onboarding surfaces
-    candidates = (
-        'button:has-text("Accept all")',
-        'button:has-text("Accept")',
-        'button:has-text("Got it")',
-        'button:has-text("Continue")',
-        'button:has-text("Allow")',
-        'button:has-text("OK")',
-        'button[aria-label="Close"]',
-        'button:has-text("Not now")',
-    )
-    for sel in candidates:
+    for sel in UI_CLEANUP_SELECTORS:
         try:
-            if await page.is_visible(sel, timeout=500):
+            if await page.is_visible(sel, timeout=SELECTOR_WAIT_MS):
                 await page.click(sel)
         except Exception:
             continue
