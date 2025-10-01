@@ -11,6 +11,7 @@ The CLI is the primary interface for automating Microsoft Copilot interactions. 
 | `--force-markdown/--no-force-markdown` | Toggle automatic Markdown instruction appended to prompts. | Config value |
 | `--normalize-markdown/--raw-markdown` | Post-process Copilot output or leave the raw response. | Config value |
 | `--log-level LEVEL` | Override logging verbosity (`DEBUG`, `INFO`, `WARNING`, `ERROR`). | `INFO` |
+| `--max-prompt-chars INTEGER` | Maximum characters per message before automatic splitting. | Config value |
 
 Global options must appear before the subcommand. Example:
 
@@ -37,7 +38,10 @@ ms-copilot auth  # uses env/keyring credentials
 
 ## Chat
 
-Send a prompt and print or save the response.
+Send a prompt and print or save the response. If a prompt exceeds the configured character limit, it is split into ordered parts:
+
+- Non-final parts include a header like `[Part 1/3]` and instruct Copilot to wait.
+- The final part uses `[Part 3/3 - Final]` and instructs Copilot to process all parts together.
 
 ```bash
 ms-copilot chat "Draft a short status update"
@@ -72,6 +76,7 @@ The CLI pulls additional configuration from environment variables or `.env`:
 - `OUTPUT_DIRECTORY`
 - `COPILOT_NORMALIZE_MARKDOWN`
 - `COPILOT_FORCE_MARKDOWN`
+- `COPILOT_MAX_PROMPT_CHARS`
 
 See the [Environment Reference](getting-started.md#configure-secrets) for full details.
 

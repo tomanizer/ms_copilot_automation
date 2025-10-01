@@ -53,3 +53,9 @@ A: The controller launches Chromium. Modify `CopilotController.start()` to use `
 A: By default, the CLI writes to `./output`; override with `--output-dir` or the `OUTPUT_DIRECTORY` env var.
 
 Still stuck? Open an issue with logs and steps to reproduce.
+
+## Long Prompts Exceed Limits
+
+- If a prompt is very long, the tool automatically splits it into ordered parts and instructs Copilot to wait until the final part before responding.
+- Control the threshold with `COPILOT_MAX_PROMPT_CHARS` or `--max-prompt-chars`.
+- The final part is used as the `exclude_text` when scraping responses to avoid echo detection problems.

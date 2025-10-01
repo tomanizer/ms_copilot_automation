@@ -29,6 +29,8 @@ Use `async with` to ensure Playwright resources close cleanly. Alternatively, ca
 
 Prompts are automatically decorated with a Markdown instruction when `settings.force_markdown_responses` is `True` (default). Disable via `COPILOT_FORCE_MARKDOWN=false` or the CLI flag `--no-force-markdown`.
 
+If a prompt exceeds `settings.max_prompt_chars`, it is split into multiple ordered parts. Non-final parts instruct Copilot to wait; the final part instructs Copilot to process all parts together. The final message is excluded from response scraping to reduce echoing.
+
 Responses are post-processed for cleaner Markdown when `settings.normalize_markdown` is `True`. Set `COPILOT_NORMALIZE_MARKDOWN=false` or use the CLI flag `--raw-markdown` to receive Copilot's unmodified output.
 
 ### Settings
@@ -58,6 +60,7 @@ Key fields:
 - `output_directory`
 - `force_markdown_responses`
 - `normalize_markdown`
+- `max_prompt_chars` (default `10000`)
 
 Secrets are sourced from (in order): environment variables, `.keyring.json` (fallback), then OS keyring. Non-secret config respects environment overrides (`M365_COPILOT_URL`, `BROWSER_HEADLESS`, etc.).
 

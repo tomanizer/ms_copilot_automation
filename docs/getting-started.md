@@ -12,7 +12,7 @@ This quick guide walks you through installing dependencies, configuring credenti
 
 ```bash
 # Clone the repository
-git clone git@github.com:your-org/ms_copilot_automation.git
+git clone https://github.com/tomanizer/ms_copilot_automation.git
 cd ms_copilot_automation
 
 # Create and activate the virtual environment
@@ -36,6 +36,7 @@ python -m playwright install chromium
    # echo "M365_COPILOT_E2E=1" >> .env  # only if you plan to run live tests
    # echo "COPILOT_FORCE_MARKDOWN=false" >> .env  # disable automatic markdown instruction
    # echo "COPILOT_NORMALIZE_MARKDOWN=false" >> .env  # keep Copilot response unmodified
+   # echo "COPILOT_MAX_PROMPT_CHARS=10000" >> .env  # override default split threshold
    ```
 
 2. Store your password (and optional TOTP secret) securely:
