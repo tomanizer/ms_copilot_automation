@@ -85,3 +85,13 @@ See the [Environment Reference](getting-started.md#configure-secrets) for full d
 - Use `ms-copilot --headed ...` to watch the browser and debug selectors.
 - Set `PWDEBUG=1` to launch the Playwright Inspector for step-by-step tracing.
 - Delete `playwright/auth/user.json` if you need a fresh login.
+
+### Windows note
+
+- The CLI flags and behavior are identical on Windows.
+- Ensure your virtual environment is activated (PowerShell: `.\\venv\\Scripts\\Activate.ps1`, CMD: `venv\\Scripts\\activate.bat`).
+- Example (PowerShell):
+
+```powershell
+ms-copilot --log-level INFO --max-prompt-chars 10000 chat "Draft a weekly status update"
+```

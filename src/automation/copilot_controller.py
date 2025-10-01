@@ -38,9 +38,13 @@ class CopilotController:
 
     async def start(self) -> None:
         self._playwright = await async_playwright().start()
-        self.browser = await self._playwright.chromium.launch(
-            headless=self.settings.browser_headless
-        )
+        launch_kwargs: dict[str, Any] = {"headless": self.settings.browser_headless}
+        # Allow custom executable or channel if set (useful behind firewalls)
+        if getattr(self.settings, "browser_executable_path", None):
+            launch_kwargs["executable_path"] = self.settings.browser_executable_path
+        if getattr(self.settings, "browser_channel", None):
+            launch_kwargs["channel"] = self.settings.browser_channel
+        self.browser = await self._playwright.chromium.launch(**launch_kwargs)
         storage = (
             str(self.settings.storage_state_path)
             if self.settings.storage_state_path.exists()
