@@ -14,11 +14,11 @@ Thank you for your interest in improving MS365 Copilot Automation! This guide ca
    - Use Python 3.10+ features as appropriate.
    - Aim for small, focused commits with clear messages.
    - Keep changes ASCII unless non-ASCII is already used.
-5. **Static Analysis (Recommended)**
-   - Run `ruff` or `flake8` if you have them configured.
-   - Optional: run `mypy` for type checking; annotations are gradually being introduced.
+5. **Static Analysis & Formatting**
+   - Run `make check` to lint (`ruff`), format-check, type-check (`mypy`), and run tests.
+   - Use `make lint-fix` and `make format` to auto-fix style issues.
 6. **Testing**
-   - Run unit tests: `PYTHONPATH=$(pwd) pytest`.
+   - Run unit tests: `make test`.
    - Opt-in live tests only when you have credentials: `M365_COPILOT_E2E=1 PYTHONPATH=$(pwd) pytest -m copilot_e2e`.
 7. **Commit & Push**
    - Include a summary of the change, referencing issues when appropriate.
