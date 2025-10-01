@@ -54,6 +54,11 @@ A: By default, the CLI writes to `./output`; override with `--output-dir` or the
 
 Still stuck? Open an issue with logs and steps to reproduce.
 
+## Windows-specific Notes
+
+- Prefer Windows Terminal with PowerShell for better compatibility.
+- If you hit platform-specific issues (path separators, activation), try Windows Subsystem for Linux (WSL) and follow the Unix-like instructions.
+
 ## Long Prompts Exceed Limits
 
 - If a prompt is very long, the tool automatically splits it into ordered parts and instructs Copilot to wait until the final part before responding.

@@ -25,6 +25,32 @@ pip install -e .
 python -m playwright install chromium
 ```
 
+### Windows (PowerShell)
+
+```powershell
+# Create and activate venv
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+
+# Install dependencies and browsers
+pip install -r requirements.txt
+pip install -e .
+python -m playwright install chromium
+```
+
+### Windows (CMD)
+
+```bat
+rem Create and activate venv
+py -m venv venv
+venv\Scripts\activate.bat
+
+rem Install dependencies and browsers
+pip install -r requirements.txt
+pip install -e .
+python -m playwright install chromium
+```
+
 ## Configure Secrets
 
 1. Create a `.env` file (ignored by git) to store your Copilot username and optional settings:
@@ -51,6 +77,22 @@ python -m playwright install chromium
    ```
 
    *Fallback:* if the OS keyring is unavailable, create `.keyring.json` with `M365_PASSWORD` and `M365_OTP_SECRET`. This file stays plaintext and should never be committed.
+
+### Environment variables on Windows
+
+- PowerShell:
+
+```powershell
+$env:LOG_LEVEL = "INFO"
+$env:COPILOT_MAX_PROMPT_CHARS = "10000"
+```
+
+- CMD:
+
+```bat
+set LOG_LEVEL=INFO
+set COPILOT_MAX_PROMPT_CHARS=10000
+```
 
 ## Authenticate
 
@@ -79,6 +121,22 @@ ms-copilot --output-dir output ask-with-file docs/report.docx \
 
 ```bash
 PYTHONPATH=$(pwd) pytest
+```
+
+On Windows:
+
+- PowerShell:
+
+```powershell
+$env:PYTHONPATH = (Get-Location).Path
+pytest -q
+```
+
+- CMD:
+
+```bat
+set PYTHONPATH=%CD%
+pytest -q
 ```
 
 (Optional) to exercise live Copilot flows, ensure the storage state or credentials are ready and run:
