@@ -1,9 +1,8 @@
 import logging
 import os
-from typing import Optional
 
 
-def get_logger(name: Optional[str] = None) -> logging.Logger:
+def get_logger(name: str | None = None) -> logging.Logger:
     """Return a configured logger.
 
     The logger writes to stdout with a concise format. Log level comes from

@@ -24,7 +24,6 @@ from dotenv import load_dotenv
 from src.automation.copilot_controller import CopilotController
 from src.utils.config import get_settings
 
-
 load_dotenv(dotenv_path=Path(".env"), override=False)
 
 
@@ -122,9 +121,7 @@ async def test_copilot_ask_with_file_reads_attachment(
 async def test_copilot_can_provide_downloadable_artifact(
     live_controller: CopilotController, tmp_path: Path
 ):
-    prompt = (
-        "Create a small CSV file with three sample tasks and make it available as a download."
-    )
+    prompt = "Create a small CSV file with three sample tasks and make it available as a download."
     await live_controller.chat(prompt)
 
     try:

@@ -16,10 +16,13 @@ venv/
 .coverage
 coverage.xml
 htmlcov/
+.coverage.*
 
 # Type checking / tooling
 .mypy_cache/
 .ruff_cache/
+.dmypy.json
+dmypy.json
 
 # OS
 .DS_Store
@@ -27,6 +30,7 @@ htmlcov/
 # Secrets
 .env
 *.env
+.keyring.json
 
 # Playwright auth state / reports
 playwright/auth/

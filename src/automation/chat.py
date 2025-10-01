@@ -1,27 +1,17 @@
 import re
 from html import unescape
-from typing import Optional, List, Tuple
 
 from playwright.async_api import Page
 
-
-MESSAGE_SELECTORS = (
-    'div[role="article"]',
-    'div.chat-response',
-    'div[data-content="message"]',
-    'div[aria-live="polite"]',
-    'div[role="dialog"] article',
-    '[data-testid="message"]',
+from .constants import (
+    CITATION_PATTERN,
+    MESSAGE_SELECTORS,
+    NETWORK_IDLE_TIMEOUT_MS,
+    NOISY_PHRASES,
+    POLL_INTERVAL_MS,
+    RAW_MARKDOWN_SELECTORS,
+    STATUS_PREFIXES,
 )
-
-RAW_MARKDOWN_SELECTORS = (
-    'div[data-testid="markdown"] pre',
-    'div:has(> pre)[data-testid="markdown"] pre',
-    'div.rounded-b-xl pre',
-    'pre.markdown',
-)
-
-CITATION_PATTERN = re.compile(r"\[_\{\{\{CITATION\{\{\{_?\d+\{\]\([^)]+\)")
 
 
 async def send_prompt(page: Page, prompt: str) -> None:
@@ -37,8 +27,8 @@ async def send_prompt(page: Page, prompt: str) -> None:
     await page.keyboard.press("Enter")
 
 
-async def _collect_texts(page: Page, selector: str) -> List[str]:
-    texts: List[str] = []
+async def _collect_texts(page: Page, selector: str) -> list[str]:
+    texts: list[str] = []
     loc = page.locator(selector)
     try:
         count = await loc.count()
@@ -55,8 +45,8 @@ async def _collect_texts(page: Page, selector: str) -> List[str]:
     return texts
 
 
-async def get_last_message_text(page: Page) -> Optional[str]:
-    candidates: List[str] = []
+async def get_last_message_text(page: Page) -> str | None:
+    candidates: list[str] = []
     for selector in MESSAGE_SELECTORS:
         try:
             if await page.is_visible(selector, timeout=300):
@@ -67,8 +57,8 @@ async def get_last_message_text(page: Page) -> Optional[str]:
     return filtered[-1] if filtered else None
 
 
-async def _extract_raw_markdown(page: Page) -> Optional[str]:
-    latest: Optional[str] = None
+async def _extract_raw_markdown(page: Page) -> str | None:
+    latest: str | None = None
     for selector in RAW_MARKDOWN_SELECTORS:
         try:
             locator = page.locator(selector)
@@ -89,32 +79,24 @@ async def _extract_raw_markdown(page: Page) -> Optional[str]:
     return latest
 
 
-def _filter_candidates(candidates: List[str], exclude_text: Optional[str]) -> List[str]:
-    status_prefixes = ("You said", "Uploading file", "Uploaded file", "Working on it")
-    noisy_phrases = (
-        "Nice to see you",
-        "Copilot may make mistakes",
-        "Your conversations are personalised",
-        "Quick response",
-        "Create an image",
-        "Write a first draft",
-        "Improve writing",
-        "Design a logo",
-        "Write a joke",
-        "Rewrite a classic",
-        "Draft an email",
-        "Take a personality quiz",
-        "Predict the future",
-        "Improve communication",
-    )
+def _filter_candidates(candidates: list[str], exclude_text: str | None) -> list[str]:
+    """Filter out noise and duplicates from chat message candidates.
+
+    :param candidates: List of candidate message texts
+    :type candidates: list[str]
+    :param exclude_text: Text to exclude from results (e.g., user's prompt)
+    :type exclude_text: str | None
+    :returns: Filtered list of unique, relevant messages
+    :rtype: list[str]
+    """
     seen = set()
-    filtered: List[str] = []
+    filtered: list[str] = []
     for t in candidates:
         if exclude_text and exclude_text.strip() in t:
             continue
-        if any(t.startswith(pfx) for pfx in status_prefixes):
+        if any(t.startswith(pfx) for pfx in STATUS_PREFIXES):
             continue
-        if any(phrase in t for phrase in noisy_phrases):
+        if any(phrase in t for phrase in NOISY_PHRASES):
             continue
         key = t.strip()
         if key and key not in seen:
@@ -123,10 +105,10 @@ def _filter_candidates(candidates: List[str], exclude_text: Optional[str]) -> Li
     return filtered
 
 
-def _score(text: str) -> Tuple[int, int]:
+def _score(text: str) -> tuple[int, int]:
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
-    bullet_lines = sum(1 for ln in lines if ln.startswith(('- ', '* ', '• ')))
-    has_heading = any(ln.startswith('#') or ln.endswith(':') for ln in lines[:3])
+    bullet_lines = sum(1 for ln in lines if ln.startswith(("- ", "* ", "• ")))
+    has_heading = any(ln.startswith("#") or ln.endswith(":") for ln in lines[:3])
     score = 0
     if bullet_lines >= 2:
         score += 3
@@ -139,48 +121,97 @@ def _score(text: str) -> Tuple[int, int]:
 
 
 def _normalise_response(text: str) -> str:
+    """Normalize Copilot response text into clean Markdown.
+
+    :param text: Raw response text from Copilot
+    :type text: str
+    :returns: Cleaned and normalized Markdown text
+    :rtype: str
+    """
+    # Unescape HTML entities
     text = unescape(text)
-    text = text.replace("---", r"\n---\n")
-    text = text.replace("#", r"\n#")
-    # text = CITATION_PATTERN.sub("", text)
-    # text = re.sub(r"\r", "", text)
-    # text = re.sub(r"[ \t]+\n", "\n", text)
-    # text = re.sub(r"\n[ \t]+", "\n", text)
-    # text = re.sub(r"^[ \t]+", "", text, flags=re.MULTILINE)
-    # text = re.sub(r"(?:^|\n)\s*-{3,}\s*(?=\n|$)", "\n\n---\n\n", text)
-    # text = re.sub(
-    #     r"(?<!\n)(#{1,6}\s+[^\n]+)",
-    #     lambda m: "\n\n" + m.group(1).strip(),
-    #     text,
-    # )
-    # text = re.sub(
-    #     r"(---)\s+(#{1,6}\s+[^\n]+)",
-    #     lambda m: f"{m.group(1)}\n\n{m.group(2).strip()}",
-    #     text,
-    # )
-    # text = re.sub(r"(?<!\n)[ \t]+([-*•]\s)", r"\n\1", text)
-    # text = re.sub(r"(?<![\n-])[ \t]+(\d+\.\s)", r"\n\1", text)
-    # text = re.sub(r"\n{3,}", "\n\n", text)
-    # text = re.sub(r"^copilot said\s*", "", text, flags=re.IGNORECASE)
-    # text = re.sub(r"\n?Edit in a page\s*$", "", text, flags=re.IGNORECASE)
+
+    # Remove citation patterns
+    text = CITATION_PATTERN.sub("", text)
+
+    # Remove carriage returns
+    text = re.sub(r"\r", "", text)
+
+    # Remove trailing whitespace from lines
+    text = re.sub(r"[ \t]+\n", "\n", text)
+
+    # Remove leading whitespace from lines
+    text = re.sub(r"\n[ \t]+", "\n", text)
+
+    # Remove leading whitespace from all lines
+    text = re.sub(r"^[ \t]+", "", text, flags=re.MULTILINE)
+
+    # Normalize horizontal rules (---)
+    text = re.sub(r"(?:^|\n)\s*-{3,}\s*(?=\n|$)", "\n\n---\n\n", text)
+
+    # Add newlines before headings
+    text = re.sub(
+        r"(?<!\n)(#{1,6}\s+[^\n]+)",
+        lambda m: "\n\n" + m.group(1).strip(),
+        text,
+    )
+
+    # Ensure proper spacing after horizontal rules before headings
+    text = re.sub(
+        r"(---)\s+(#{1,6}\s+[^\n]+)",
+        lambda m: f"{m.group(1)}\n\n{m.group(2).strip()}",
+        text,
+    )
+
+    # Add newlines before bullet points
+    text = re.sub(r"(?<!\n)[ \t]+([-*•]\s)", r"\n\1", text)
+
+    # Add newlines before numbered lists
+    text = re.sub(r"(?<![\n-])[ \t]+(\d+\.\s)", r"\n\1", text)
+
+    # Normalize multiple newlines to at most 2
+    text = re.sub(r"\n{3,}", "\n\n", text)
+
+    # Remove "Copilot said" prefix
+    text = re.sub(r"^copilot said\s*", "", text, flags=re.IGNORECASE)
+
+    # Remove "Edit in a page" suffix
+    text = re.sub(r"\n?Edit in a page\s*$", "", text, flags=re.IGNORECASE)
+
     return text.strip()
 
 
 async def read_response_text(
     page: Page,
-    timeout_ms: int = 90000,
-    exclude_text: Optional[str] = None,
+    timeout_ms: int | None = None,
+    exclude_text: str | None = None,
     normalise: bool = True,
 ) -> str:
+    """Read and extract response text from Copilot.
+
+    :param page: The Playwright page instance
+    :type page: Page
+    :param timeout_ms: Maximum time to wait for response (uses NETWORK_IDLE_TIMEOUT_MS if None)
+    :type timeout_ms: int | None
+    :param exclude_text: Text to exclude from results
+    :type exclude_text: str | None
+    :param normalise: Whether to normalize the markdown
+    :type normalise: bool
+    :returns: The response text from Copilot
+    :rtype: str
+    """
+    if timeout_ms is None:
+        timeout_ms = NETWORK_IDLE_TIMEOUT_MS
+
     await page.wait_for_load_state("networkidle")
 
-    interval_ms = 1000
+    interval_ms = POLL_INTERVAL_MS
     elapsed = 0
-    last_best: Optional[str] = None
+    last_best: str | None = None
     stable_ticks = 0
 
     while elapsed < timeout_ms:
-        candidates: List[str] = []
+        candidates: list[str] = []
         for selector in MESSAGE_SELECTORS:
             try:
                 if await page.is_visible(selector, timeout=500):

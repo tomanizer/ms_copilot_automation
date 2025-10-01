@@ -1,11 +1,8 @@
-from typing import Optional
-
 from playwright.async_api import BrowserContext, Page
 from pyotp import TOTP
 
 from ..utils.config import get_settings
 from ..utils.logger import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -14,7 +11,7 @@ async def _click_sign_in_if_present(page: Page) -> None:
     for locator in (
         'role=link[name="Sign in"]',
         'role=button[name="Sign in"]',
-        'text=Sign in',
+        "text=Sign in",
         'a:has-text("Sign in")',
         'button:has-text("Sign in")',
     ):
@@ -30,16 +27,16 @@ async def _login_via_live(page: Page, username: str, password: str) -> bool:
     # Consumer Microsoft account (Hotmail/Outlook)
     await page.goto("https://login.live.com/")
     try:
-        await page.wait_for_selector('#i0116', timeout=45000)
-        await page.fill('#i0116', username)
-        await page.click('#idSIButton9')
-        await page.wait_for_selector('#i0118', timeout=45000)
-        await page.fill('#i0118', password)
-        await page.click('#idSIButton9')
+        await page.wait_for_selector("#i0116", timeout=45000)
+        await page.fill("#i0116", username)
+        await page.click("#idSIButton9")
+        await page.wait_for_selector("#i0118", timeout=45000)
+        await page.fill("#i0118", password)
+        await page.click("#idSIButton9")
         # Post-login prompts (Stay signed in?)
         try:
-            if await page.is_visible('#idSIButton9', timeout=5000):
-                await page.click('#idSIButton9')
+            if await page.is_visible("#idSIButton9", timeout=5000):
+                await page.click("#idSIButton9")
         except Exception:
             pass
         await page.wait_for_load_state("networkidle")
@@ -48,18 +45,22 @@ async def _login_via_live(page: Page, username: str, password: str) -> bool:
         return False
 
 
-async def _login_via_generic(page: Page, username: str, password: str, mfa_secret: Optional[str]) -> bool:
+async def _login_via_generic(
+    page: Page, username: str, password: str, mfa_secret: str | None
+) -> bool:
     settings = get_settings()
     await page.goto(settings.copilot_url)
     await _click_sign_in_if_present(page)
     try:
-        await page.wait_for_selector('input[type="email"], input[name="loginfmt"], #i0116', timeout=45000)
-        if await page.is_visible('#i0116'):
-            await page.fill('#i0116', username)
+        await page.wait_for_selector(
+            'input[type="email"], input[name="loginfmt"], #i0116', timeout=45000
+        )
+        if await page.is_visible("#i0116"):
+            await page.fill("#i0116", username)
         else:
             await page.fill('input[type="email"], input[name="loginfmt"]', username)
         for submit in (
-            '#idSIButton9',
+            "#idSIButton9",
             'input[type="submit"]',
             'button[type="submit"]',
             'input[value="Next"]',
@@ -69,12 +70,12 @@ async def _login_via_generic(page: Page, username: str, password: str, mfa_secre
                 await page.click(submit)
                 break
         await page.wait_for_selector('input[type="password"], #i0118', timeout=45000)
-        if await page.is_visible('#i0118'):
-            await page.fill('#i0118', password)
+        if await page.is_visible("#i0118"):
+            await page.fill("#i0118", password)
         else:
             await page.fill('input[type="password"]', password)
         for submit in (
-            '#idSIButton9',
+            "#idSIButton9",
             'input[type="submit"]',
             'button[type="submit"]',
             'button:has-text("Sign in")',
@@ -96,7 +97,9 @@ async def _login_via_generic(page: Page, username: str, password: str, mfa_secre
         return False
 
 
-async def perform_login(context: BrowserContext, username: str, password: str, mfa_secret: Optional[str] = None) -> None:
+async def perform_login(
+    context: BrowserContext, username: str, password: str, mfa_secret: str | None = None
+) -> None:
     """Login to MS365 (consumer or org) and persist storage state."""
     settings = get_settings()
     page: Page = await context.new_page()

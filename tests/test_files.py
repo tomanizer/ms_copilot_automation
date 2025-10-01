@@ -1,11 +1,10 @@
-import asyncio
 from pathlib import Path
 
 import pytest
-
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from src.automation import files
+from src.exceptions import DownloadTimeoutError
 
 
 class _DummyDownload:
@@ -76,7 +75,7 @@ async def test_download_next_times_out(tmp_path):
     page = _DummyPage(download, timeout=True)
 
     target = tmp_path / "artifacts"
-    with pytest.raises(RuntimeError) as exc:
+    with pytest.raises(DownloadTimeoutError) as exc:
         await files.download_next(page, target, timeout_ms=100)
 
     assert "Timed out" in str(exc.value)

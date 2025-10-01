@@ -1,4 +1,4 @@
-from src.automation.chat import _filter_candidates, _score, _normalise_response
+from src.automation.chat import _filter_candidates, _normalise_response, _score
 
 
 def test_filter_candidates_drops_noise_and_duplicates():

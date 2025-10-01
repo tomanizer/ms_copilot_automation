@@ -1,0 +1,8 @@
+#!/bin/bash
+# Auto-activation script for virtual environment
+# This file will be sourced when entering this directory
+
+source venv/bin/activate
+echo "✓ Virtual environment activated: ms_copilot_automation"
+
+

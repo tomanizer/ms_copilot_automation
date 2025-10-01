@@ -6,7 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 
-
 try:
     import playwright.async_api  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # pragma: no cover - fallback for test environment
@@ -60,7 +59,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for test environment
     load_dotenv = _dummy_load_dotenv
 
 try:
-    from pydantic import BaseModel, Field, ConfigDict  # type: ignore[attr-defined]
+    from pydantic import BaseModel, ConfigDict, Field  # type: ignore[attr-defined]
 except ModuleNotFoundError:  # pragma: no cover - fallback for test environment
     pydantic_module = types.ModuleType("pydantic")
 
@@ -88,6 +87,7 @@ except ModuleNotFoundError:  # pragma: no cover - fallback for test environment
     sys.modules["pydantic"] = pydantic_module
 
 import src.automation.copilot_controller as copilot_module
+from src.automation.constants import MARKDOWN_INSTRUCTION
 from src.automation.copilot_controller import CopilotController
 
 
@@ -117,6 +117,12 @@ class DummyPage:
 
     async def goto(self, url: str) -> None:
         self.goto_urls.append(url)
+
+    async def wait_for_load_state(self, state: str) -> None:
+        pass
+
+    async def is_visible(self, selector: str, timeout: int = 0) -> bool:
+        return False
 
     async def close(self) -> None:
         self.closed = True
@@ -186,6 +192,10 @@ def build_playwright_stack(page: DummyPage):
     return manager, browser, context, chromium, playwright
 
 
+async def _stub_logged_in(self, page):
+    return True
+
+
 @pytest.fixture
 def make_settings(tmp_path):
     def factory(**overrides):
@@ -245,6 +255,42 @@ def test_ensure_authenticated_requires_start(monkeypatch, make_settings):
     asyncio.run(run())
 
 
+def test_ensure_authenticated_refreshes_when_session_invalid(monkeypatch, make_settings):
+    async def run():
+        settings = make_settings()
+        settings.storage_state_path.write_text("{}")
+
+        page = DummyPage()
+        manager, browser, context, _, _ = build_playwright_stack(page)
+
+        perform_login_mock = AsyncSpy()
+
+        monkeypatch.setattr(copilot_module, "get_settings", lambda: settings)
+        monkeypatch.setattr(copilot_module, "async_playwright", lambda: manager)
+        monkeypatch.setattr(copilot_module, "perform_login", perform_login_mock)
+
+        async def _force_not_logged(_: CopilotController, __: DummyPage) -> bool:
+            return False
+
+        monkeypatch.setattr(CopilotController, "_check_if_logged_in", _force_not_logged)
+
+        controller = CopilotController()
+        await controller.start()
+
+        await controller.ensure_authenticated()
+
+        perform_login_mock.assert_called_once_with(
+            controller.context,
+            username=settings.username,
+            password=settings.password,
+            mfa_secret=settings.mfa_secret,
+        )
+
+        await controller.close()
+
+    asyncio.run(run())
+
+
 def test_chat_sends_prompt_and_returns_response(monkeypatch, make_settings):
     async def run():
         settings = make_settings()
@@ -264,6 +310,7 @@ def test_chat_sends_prompt_and_returns_response(monkeypatch, make_settings):
         monkeypatch.setattr(copilot_module, "prepare_chat_ui", prepare_mock)
         monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
         monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+        monkeypatch.setattr(CopilotController, "_check_if_logged_in", _stub_logged_in)
 
         controller = CopilotController()
         await controller.start()
@@ -274,7 +321,9 @@ def test_chat_sends_prompt_and_returns_response(monkeypatch, make_settings):
         assert result == "generated answer"
         prepare_mock.assert_called_once_with(page)
         send_mock.assert_called_once_with(page, prompt)
-        read_mock.assert_called_once_with(page, exclude_text=prompt, normalise=settings.normalize_markdown)
+        read_mock.assert_called_once_with(
+            page, exclude_text=prompt, normalise=settings.normalize_markdown
+        )
         perform_login_mock.assert_not_called()
 
         await controller.close()
@@ -299,17 +348,20 @@ def test_chat_appends_markdown_instruction_when_enabled(monkeypatch, make_settin
         monkeypatch.setattr(copilot_module, "prepare_chat_ui", prepare_mock)
         monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
         monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+        monkeypatch.setattr(CopilotController, "_check_if_logged_in", _stub_logged_in)
 
         controller = CopilotController()
         await controller.start()
 
         prompt = "Summarise the quarterly report"
-        decorated = f"{prompt}\n\n{CopilotController.MARKDOWN_INSTRUCTION}"
+        decorated = f"{prompt}\n\n{MARKDOWN_INSTRUCTION}"
 
         await controller.chat(prompt)
 
         send_mock.assert_called_once_with(page, decorated)
-        read_mock.assert_called_once_with(page, exclude_text=decorated, normalise=settings.normalize_markdown)
+        read_mock.assert_called_once_with(
+            page, exclude_text=decorated, normalise=settings.normalize_markdown
+        )
 
         await controller.close()
 
@@ -333,12 +385,13 @@ def test_chat_uses_raw_response_when_normalise_disabled(monkeypatch, make_settin
         monkeypatch.setattr(copilot_module, "prepare_chat_ui", prepare_mock)
         monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
         monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+        monkeypatch.setattr(CopilotController, "_check_if_logged_in", _stub_logged_in)
 
         controller = CopilotController()
         await controller.start()
 
         prompt = "Summarise the quarterly report"
-        decorated = f"{prompt}\n\n{CopilotController.MARKDOWN_INSTRUCTION}"
+        decorated = f"{prompt}\n\n{MARKDOWN_INSTRUCTION}"
 
         result = await controller.chat(prompt)
 
@@ -372,6 +425,7 @@ def test_ask_with_file_uploads_before_prompt(monkeypatch, make_settings, tmp_pat
         monkeypatch.setattr(copilot_module, "_upload_file", upload_mock)
         monkeypatch.setattr(copilot_module, "_send_prompt", send_mock)
         monkeypatch.setattr(copilot_module, "_read_response_text", read_mock)
+        monkeypatch.setattr(CopilotController, "_check_if_logged_in", _stub_logged_in)
 
         controller = CopilotController()
         await controller.start()
@@ -386,7 +440,9 @@ def test_ask_with_file_uploads_before_prompt(monkeypatch, make_settings, tmp_pat
         prepare_mock.assert_called_once_with(page)
         upload_mock.assert_called_once_with(page, file_path)
         send_mock.assert_called_once_with(page, prompt)
-        read_mock.assert_called_once_with(page, exclude_text=prompt, normalise=settings.normalize_markdown)
+        read_mock.assert_called_once_with(
+            page, exclude_text=prompt, normalise=settings.normalize_markdown
+        )
         perform_login_mock.assert_not_called()
 
         await controller.close()
